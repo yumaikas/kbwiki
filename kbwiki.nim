@@ -3,8 +3,7 @@ import database, views, kb_config
 import strutils
 from nativesockets import Port
 
-
-let db = newDatabase()
+let db = newDatabase(DB_FILE)
 db.setup()
 
 settings:
