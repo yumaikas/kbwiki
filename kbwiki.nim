@@ -1,45 +1,69 @@
-import htmlgen
 import jester
-import database
+import database, views, kb_config
 import strutils
+from nativesockets import Port
 
 
 let db = newDatabase()
+db.setup()
+
+settings:
+  port = nativesockets.Port(kb_config.PORT)
 
 routes:
   # / -> home
   get "/":
-    resp h1 ("Kilobyte Wiki!")
-    # TODO: revisit jester's approach to building web responses later
+    resp viewIdeaList(db.ideasSortedByModTime())
+  # /admin/ -> ideas_admin_ui
+  get "/admin":
+    resp adminIdeaList(db.ideasSortedByModTime())
     
   # /view/@type/@arg -> tag handler
   #  @type == bytag -> get_ideas_html(@arg)
   get "/view/bytag/@tag":
-    resp (h1("View by tag:" & @"tag"))
+    resp viewIdeaList(db.getIdeasByTag(@"tag"))
+  get "/admin/bytag/@tag":
+    resp adminIdeaList(db.getIdeasByTag(@"tag"))
+
   get "/view/idea/@id":
     #  @type == idea -> get_idea_html_for(@arg.int32)
     let id = parseInt(@"id")
     let idea = db.getIdeaById(id)
-    echo idea.title
-    resp (h1("View idea by id:" & $id))
+    resp viewIdea(idea)
   
-  # /admin/@action/@id -> ideas_admin
-  #   @action = "create"
-  post "/admin/create/@id":
-    discard
-  #   @action = "update"
+  post "/admin/create/new":
+    let formData = request.formData
+    echo (repr(request))
+    # cond "tag" in formData
+    # cond "description" in formData
+    # cond "notes" in formData
+    let idea = Idea(
+      title: formData["description"].body,
+      tag: formData["tag"].body,
+      content: formData["notes"].body
+    )
+    let newId = db.createIdea(idea)
+    redirect "/admin/view/" & $newId
+    
   post "/admin/update/@id":
+    #   @action = "update"
+    let formData = request.formData
+    cond "tag" in formData
+    cond "description" in formData
+    cond "notes" in formData
+    let idea = Idea(
+      id: parseInt(@"id"),
+      title: formData["description"].body,
+      tag: formData["tag"].body,
+      content: formData["notes"].body
+    )
+    db.updateIdea(idea)
+  post "/admin/delete/@id":
+    #   @action = "delete"
     discard
-  #   @action = "delete"
   #   @action = "bytag"
   #   @action = "view"
-  # /admin/ -> ideas_admin_ui
-  #
 
-  get "/admin/view":
-    discard
-  post "/admin/create/new":
-    discard
-  post "/admin/delete":
-    discard
+  get "/admin/view/@id":
+    resp viewEditIdea(db.getIdeaById(parseInt(@"id")))
     

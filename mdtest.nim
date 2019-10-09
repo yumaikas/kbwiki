@@ -1,4 +1,5 @@
 import markdown
+import kb_config, views
 
 echo(markdown("""
 # This is an H1
@@ -16,3 +17,8 @@ Do we support [hyperlinks?](https://junglecoder.com/)
 Does it do code formatting?
 ```
 """))
+
+echo PORT
+echo THEME
+echo APP_TITLE
+echo css()

@@ -22,7 +22,7 @@ proc close*(database: Database) =
 proc setup*(database: Database) =
   database.db.exec(sql"""
   Create Table if not exists idea_entry(
-    id PRIMARY KEY INT,
+    id INT PRIMARY KEY,
     tag text DEFAULT "TODO",
     title text,
     content text,
@@ -33,7 +33,7 @@ proc setup*(database: Database) =
 
   database.db.exec(sql"""
   Create Table if not exists idea_entry_history(
-    id PRIMARY KEY INT,
+    id INT PRIMARY KEY,
     idea_id integer,
     tag text DEFAULT "TODO",
     title text,
