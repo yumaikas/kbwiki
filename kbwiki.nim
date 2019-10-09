@@ -25,6 +25,8 @@ routes:
   get "/admin/bytag/@tag":
     resp adminIdeaList(db.getIdeasByTag(@"tag"))
 
+  get "/admin/view/@id":
+    resp viewEditIdea(db.getIdeaById(parseInt(@"id")))
   get "/view/idea/@id":
     #  @type == idea -> get_idea_html_for(@arg.int32)
     let id = parseInt(@"id")
@@ -33,17 +35,16 @@ routes:
   
   post "/admin/create/new":
     let formData = request.formData
-    echo (repr(request))
-    # cond "tag" in formData
-    # cond "description" in formData
-    # cond "notes" in formData
+    cond "tag" in formData
+    cond "description" in formData
+    cond "notes" in formData
     let idea = Idea(
       title: formData["description"].body,
       tag: formData["tag"].body,
       content: formData["notes"].body
     )
     let newId = db.createIdea(idea)
-    redirect "/admin/view/" & $newId
+    redirect ("/view/idea/" & $newId)
     
   post "/admin/update/@id":
     #   @action = "update"
@@ -58,12 +59,12 @@ routes:
       content: formData["notes"].body
     )
     db.updateIdea(idea)
-  post "/admin/delete/@id":
-    #   @action = "delete"
-    discard
-  #   @action = "bytag"
-  #   @action = "view"
+    redirect("/view/idea/" & $idea.id)
 
-  get "/admin/view/@id":
-    resp viewEditIdea(db.getIdeaById(parseInt(@"id")))
+  post "/admin/delete/@id":
+    resp Http500, "Route Not Implemented!"
     
+  error Exception:
+    resp Http500, errorPage("Something isn't quite right. Try again later")
+
+

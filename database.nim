@@ -54,10 +54,10 @@ proc ideaFromRow(row: seq[string]): Idea =
 proc getIdeasByTag*(database: Database, tag: string): seq[Idea] =
   var ideas = newSeq[Idea]()
   var query = sql"""
-  SELECT id, tag, title, content, created, modified 
+  SELECT rowid, tag, title, content, created, modified 
   FROM idea_entry 
   WHERE tag = ?
-  ORDER BY modified;"""
+  ORDER BY modified DESC;"""
   for row in database.db.fastRows(query, tag):
     ideas.add(ideaFromRow(row))
   return ideas
@@ -65,12 +65,12 @@ proc getIdeasByTag*(database: Database, tag: string): seq[Idea] =
 
 proc getIdeaById*(database: Database, id: int): Idea =
   let row = database.db.getRow(
-    sql"SELECT id, tag, title, content, created, modified from idea_entry where id = ?;", id)
+    sql"SELECT rowid, tag, title, content, created, modified from idea_entry where rowid = ?;", id)
   result = ideaFromRow(row)
   
 proc ideasSortedByModTime*(database: Database): seq[Idea] =
   var ideas = newSeq[Idea]()
-  var query = sql"SELECT id, tag, title, content, created, modified from idea_entry order by modified;"
+  var query = sql"SELECT rowid, tag, title, content, created, modified from idea_entry order by modified DESC;"
   for row in database.db.fastRows(query):
     ideas.add(ideaFromRow(row))
   return ideas
@@ -84,24 +84,24 @@ proc createIdea*(database: Database, idea: Idea): int64=
 proc deleteIdea*(database: Database, id: int) =
   database.db.exec(
     sql"""
-    INSERT INTO idea_entry_history(idea_id, tag, title, content, created, updated)
-    SELECT id, tag, title, content, created, ? from idea_entry where idea_entry.id = ?
+    INSERT INTO idea_entry_history(idea_id, tag, title, content, created, modified)
+    SELECT rowid, tag, title, content, created, ? from idea_entry where idea_entry.rowid = ?
     """, getTime().toUnix, id)
-  database.db.exec(sql"DELETE FROM idea_entry where id = ?", id)
+  database.db.exec(sql"DELETE FROM idea_entry where rowid = ?", id)
 
 proc updateIdea*(database: Database, idea: Idea) =
   # Start by copying the current idea into the history table
   database.db.exec(
     sql"""
-    INSERT INTO idea_entry_history(idea_id, tag, title, content, created, updated)
-    SELECT id, tag, title, content, created, ? from idea_entry where idea_entry.id = ?
+    INSERT INTO idea_entry_history(idea_id, tag, title, content, created, modified)
+    SELECT id, tag, title, content, created, ? from idea_entry where idea_entry.rowid = ?
     """, getTime().toUnix, idea.id)
 
   # And then update the current entry
   database.db.exec(sql"""
   Update idea_entry
-  SET tag = ?, title = ?, content = ?, updated = ?
-  WHERE id = ?
+  SET tag = ?, title = ?, content = ?, modified = ?
+  WHERE rowid = ?
   """,
     idea.tag, idea.title, idea.content, getTime().toUnix, idea.id)
 

@@ -7,7 +7,7 @@ proc css*(): string =
   var back_color = "#191e2a"
   var fore_color = "#21EF9F"
   var link_color = "aqua"
-  var visted_color = "#191e2a"
+  var visted_color = "darkcyan"
   if THEME == "AQUA":
     discard
   elif THEME == "AUTUMN":
@@ -28,6 +28,7 @@ body,input,textarea {{
   background: {back_color};
   color: {fore_color};
 }}
+td {{ margin: 5px; }}
 a {{ color: {link_color}; }}
 a:visited {{ color: {visted_color}; }}
 """)
@@ -62,14 +63,13 @@ proc tagLink(idea: Idea): string =
 proc editLink(idea: Idea): string =
   return a(href="/admin/view/" & $idea.id, "Edit")
 proc viewLink(idea: Idea, str: string = "View"): string =
-  return a(href="/view/idea" & $idea.id, str)
+  return a(href="/view/idea/" & $idea.id, str)
 
 proc linkIfNotes(idea: Idea): string =
   if idea.content.len == 0:
     return idea.title
   else:
     return idea.viewLink(idea.title)
-
 
 proc tableWith(inner: () -> string): string =
   var output = newSeq[string]()
@@ -105,7 +105,7 @@ proc adminIdeaRows(ideas: seq[Idea]): string =
   return output.join("\n")
 
 proc createIdeaForm(): string =
-  return form(id="new-idea", action="/admin/create/new", `method`="POST",
+  return form(id="new-idea", action="/admin/create/new", `method`="POST", enctype="multipart/form-data",
     table(
       tr(
         td(label(`for`="tag", "Tag: ")),
@@ -124,16 +124,16 @@ proc createIdeaForm(): string =
   )
 
 proc viewIdea*(idea: Idea): string =
-  return pageBase(htmlgen.`div`(
+  return pageBase(`div`(
       h2(a(href="/", idea.title)),
-      htmlgen.`div`(id="tag", "Tag", idea.tagLink),
+      `div`(id="tag", "Tag: ", idea.tagLink),
       idea.editLink(),
-      htmlgen.`div`(id="notes", markdown(idea.content))
+      `div`(id="notes", markdown(idea.content))
   ))
 
 proc viewEditIdea*(idea: Idea): string =
   return pageBase(
-    form(id = "idea-to-save", action= ("/admin/update" & $idea.id), `method`="POST",
+    form(id = "idea-to-save", action= ("/admin/update/" & $idea.id), `method`="POST", enctype="multipart/form-data",
       h2("Description"), idea.titleEditor,
       `div`("Tag:"), idea.tagEditor,
       `div`("Notes:"), idea.notesEditor,
@@ -149,3 +149,7 @@ proc adminIdeaList*(ideas: seq[Idea]): string =
     tableWith(() => adminIdeaRows(ideas)) &
     h2("Create Page") &
     createIdeaForm())
+
+proc errorPage*(message: string): string =
+  return pageBase(message)
+
