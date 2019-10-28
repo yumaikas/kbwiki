@@ -67,13 +67,31 @@ proc getIdeaById*(database: Database, id: int): Idea =
   let row = database.db.getRow(
     sql"SELECT rowid, tag, title, content, created, modified from idea_entry where rowid = ?;", id)
   result = ideaFromRow(row)
-  
-proc ideasSortedByModTime*(database: Database): seq[Idea] =
+
+proc adminIdeasSortedByModTime*(database: Database): seq[Idea] =
   var ideas = newSeq[Idea]()
   var query = sql"SELECT rowid, tag, title, content, created, modified from idea_entry order by modified DESC;"
   for row in database.db.fastRows(query):
     ideas.add(ideaFromRow(row))
   return ideas
+  
+proc ideasSortedByModTime*(database: Database): seq[Idea] =
+  var ideas = newSeq[Idea]()
+  var query = sql"""
+    SELECT rowid, tag, title, content, created, modified 
+    FROM idea_entry 
+    WHERE tag not like ('#HIDE+%')
+    ORDER BY modified DESC;"""
+  for row in database.db.fastRows(query):
+    ideas.add(ideaFromRow(row))
+  return ideas
+
+# This creates an idea under a given id
+proc createIdeaWithId*(database: Database, id: int, idea: Idea): int64 =
+  let currTime = getTime().toUnix
+  return database.db.tryInsertId(
+    sql"INSERT into idea_entry(rowid, tag, title, content, created, modified) values(?, ?,?,?,?,?)",
+      id, idea.tag, idea.title, idea.content, currTime, currTime)
 
 proc createIdea*(database: Database, idea: Idea): int64=
   let currTime = getTime().toUnix
@@ -94,7 +112,7 @@ proc updateIdea*(database: Database, idea: Idea) =
   database.db.exec(
     sql"""
     INSERT INTO idea_entry_history(idea_id, tag, title, content, created, modified)
-    SELECT id, tag, title, content, created, ? from idea_entry where idea_entry.rowid = ?
+    SELECT rowid, tag, title, content, created, ? from idea_entry where idea_entry.rowid = ?
     """, getTime().toUnix, idea.id)
 
   # And then update the current entry

@@ -6,8 +6,13 @@ from nativesockets import Port
 let db = newDatabase(DB_FILE)
 db.setup()
 
+var bindAddr = "localhost"
+if not BIND_LOCAL_ONLY:
+  bindAddr = "0.0.0.0"
+
 settings:
   port = nativesockets.Port(kb_config.PORT)
+  bindAddr = bindAddr
 
 routes:
   # / -> home
@@ -15,7 +20,7 @@ routes:
     resp viewIdeaList(db.ideasSortedByModTime())
   # /admin/ -> ideas_admin_ui
   get "/admin":
-    resp adminIdeaList(db.ideasSortedByModTime())
+    resp adminIdeaList(db.adminIdeasSortedByModTime())
     
   # /view/@type/@arg -> tag handler
   #  @type == bytag -> get_ideas_html(@arg)
