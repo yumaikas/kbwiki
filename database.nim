@@ -12,6 +12,15 @@ type
     created*: Time
     modified*: Time
 
+  IdeaHistory* = object
+    id*: int
+    idea_id*: int
+    tag*: string
+    title*: string
+    content*: string
+    created*: Time
+    modified*: Time
+
 proc newDatabase*(filename = "kbwiki.db"): Database =
   new result
   result.db = open(filename, "", "", "")
@@ -51,6 +60,24 @@ proc ideaFromRow(row: seq[string]): Idea =
   result.created = row[4].parseInt().fromUnix
   result.modified = row[5].parseInt().fromUnix
 
+proc ideaHistoryFromRow(row: seq[string]): IdeaHistory =
+  result.id = row[0].parseInt
+  result.tag = row[1]
+  result.title = row[2]
+  result.content = row[3]
+  result.created = row[4].parseInt().fromUnix
+  result.modified = row[5].parseInt().fromUnix
+  result.idea_id = row[6].parseInt()
+
+proc ideaHistoriesFromDb*(database: Database): seq[IdeaHistory] =
+  result = newSeq[IdeaHistory]()
+  var query = sql"""
+  SELECT rowid, tag, title, content, created, modified, idea_id
+  FROM idea_entry_history
+  """
+  for row in database.db.fastRows(query):
+    result.add(ideaHistoryFromRow(row))
+    
 proc getIdeasByTag*(database: Database, tag: string): seq[Idea] =
   var ideas = newSeq[Idea]()
   var query = sql"""
@@ -75,6 +102,8 @@ proc adminIdeasSortedByModTime*(database: Database): seq[Idea] =
     ideas.add(ideaFromRow(row))
   return ideas
   
+
+
 proc ideasSortedByModTime*(database: Database): seq[Idea] =
   var ideas = newSeq[Idea]()
   var query = sql"""
